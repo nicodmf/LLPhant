@@ -36,6 +36,11 @@ class QdrantVectorStore extends VectorStoreBase
         $this->client = new Qdrant(new Transport(new Client(), $config));
     }
 
+    public function setClient(Qdrant $client): void
+    {
+        $this->client = $client;
+    }
+
     public function setVectorName(?string $vectorName): void
     {
         $this->vectorName = $vectorName;
@@ -43,10 +48,12 @@ class QdrantVectorStore extends VectorStoreBase
 
     /**
      * @param  $distance  string [Cosine, Euclid, Dot]
+     *
+     * @throws InvalidArgumentException
      */
     public function setDistance(string $distance): void
     {
-        if (in_array($distance, [VectorParams::DISTANCE_COSINE, VectorParams::DISTANCE_DOT, VectorParams::DISTANCE_EUCLID])) {
+        if (! in_array($distance, [VectorParams::DISTANCE_COSINE, VectorParams::DISTANCE_DOT, VectorParams::DISTANCE_EUCLID])) {
             throw new InvalidArgumentException('Invalid distance');
         }
         $this->distance = $distance;
@@ -74,14 +81,8 @@ class QdrantVectorStore extends VectorStoreBase
     public function createCollection(string $name, int $embeddingLength): Response
     {
         $createCollection = new CreateCollection();
-
-        $createCollection->addVector(
-            new VectorParams(
-                $embeddingLength,
-                $this->distance
-            ),
-            $this->vectorName
-        );
+        $vectorParams = new VectorParams($embeddingLength, $this->distance);
+        $createCollection->addVector($vectorParams, $this->vectorName);
         $response = $this->client->collections($name)->create($createCollection);
         $this->collectionName = $name;
 
